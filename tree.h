@@ -1,156 +1,135 @@
-#include <vector>
-#include <iostream>
 #include <algorithm>
+#include <array>
 #include <exception>
+#include <iostream>
 #include <stdexcept>
-
-
-template<class T>
-struct Node_ {
-    Node_() = default;
-
-    explicit Node_(const T &val) : val(new T(val)) {}
-
-    T *val = nullptr;
-    Node_ *parent = nullptr;
-    Node_ *sons[4];
-    int sons_size = 0;
-};
-
-template<class T>
-class Set;
-
-template<class T>
-class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
-
-    friend Set<T>;
-    using Node = Node_<T>;
-    using Set = Set<T>;
-
-private:
-    Iterator(const Node *node, const Set *s);
-
-    void check_version_() const;
-
-    const Node *cur_ = nullptr;
-    const Set *s_ = nullptr;
-    uint64_t version_ = 0;
-public:
-    Iterator() = default;
-
-    Iterator &operator++();
-
-    Iterator<T> operator++(int);
-
-    Iterator &operator--();
-
-    Iterator<T> operator--(int);
-
-    T *operator->();
-
-    bool operator!=(const Iterator &iter) const;
-
-    bool operator==(const Iterator &iter) const;
-
-    const T &operator*() const;
-};
+#include <vector>
 
 template<class T>
 class Set {
+private:
+    static const size_t MAX_SONS = 4;
+
+    struct Node {
+        Node() = default;
+
+        explicit Node(const T& val) : val(new T(val)) {}
+
+        T* val = nullptr;
+        Node* parent = nullptr;
+        std::array<Node*, MAX_SONS> sons;
+        size_t sons_size = 0;
+    };
+
 public:
-    friend Iterator<T>;
+    class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
+    private:
+        void check_version_() const;
 
-    using iterator = Iterator<T>;
-    using Node = Node_<T>;
+        const Node* cur_ = nullptr;
+        const Set<T>* s_ = nullptr;
+        uint64_t version_ = 0;
 
+    public:
+        Iterator(const Node* node, const Set<T>* s);
+
+        Iterator() = default;
+
+        Iterator& operator++();
+
+        Iterator operator++(int);
+
+        Iterator& operator--();
+
+        Iterator operator--(int);
+
+        T* operator->();
+
+        bool operator!=(const Iterator& iter) const;
+
+        bool operator==(const Iterator& iter) const;
+
+        const T& operator*() const;
+    };
+
+public:
     Set() = default;
 
-    template<typename Iterator>
-    Set(Iterator first, Iterator last);
+    template<typename iterator>
+    Set(iterator first, iterator last);
 
     Set(std::initializer_list<T> elems);
 
-    Set(const Set<T> &s);
+    Set(const Set<T>& s);
 
-    Set(Set<T> &&s) noexcept;
+    Set(Set<T>&& s) noexcept;
 
     ~Set();
 
-    Set<T> &operator=(const Set<T> &s);
+    Set<T>& operator=(const Set<T>& s);
 
-    Set<T> &operator=(Set<T> &&s) noexcept;
+    Set<T>& operator=(Set<T>&& s) noexcept;
 
-    size_t size() const;
+    inline size_t size() const { return size_; }
 
-    bool empty() const;
+    inline bool empty() const { return size_ == 0; }
 
-    void insert(const T &elem);
+    void insert(const T& elem);
 
-    void erase(const T &elem);
+    void erase(const T& elem);
 
-    iterator begin() const;
+    Iterator begin() const;
 
-    iterator end() const;
+    Iterator end() const;
 
-    iterator lower_bound(const T &elem) const;
+    Iterator lower_bound(const T& elem) const;
 
-    iterator find(const T &elem) const;
-
-private:
-    void update_(Node *node);
-
-    void fix4sons_(Node *node);
-
-    void fix1sons_(Node *node);
-
-    void sort_sons(Node *node);
-
-    Node *lower_bound_(const T &elem);
-
-    const Node *next_node_(const Node *cur_) const;
-
-    const Node *prev_node_(const Node *cur_) const;
-
-
-    Node *copy_(const Node *root);
-
-    void destruct_(Node *root);
+    Iterator find(const T& elem) const;
 
 private:
-    Node *root_ = nullptr;
+    void update_(Node* node);
+
+    void fix4sons_(Node* node);
+
+    void fix1sons_(Node* node);
+
+    void sort_sons(Node* node);
+
+    Node* lower_bound_(const T& elem);
+
+    const Node* next_node_(const Node* cur_) const;
+
+    const Node* prev_node_(const Node* cur_) const;
+
+    Node* copy_(const Node* root);
+
+    void destruct_(Node* root);
+
+private:
+    Node* root_ = nullptr;
     size_t size_ = 0;
     uint64_t version_ = 0;
     Node END_NODE_;
 };
 
 template<class T>
-size_t Set<T>::size() const {
-    return size_;
-}
-
-template<class T>
-template<typename Iterator>
-Set<T>::Set(Iterator first, Iterator last) {
-    for (auto i = first; i != last; ++i) {
+template<class iterator>
+Set<T>::Set(iterator first, iterator last) {
+    for (Iterator i = first; i != last; ++i) {
         insert(*i);
     }
 }
 
 template<class T>
 Set<T>::Set(std::initializer_list<T> elems) {
-    for (const auto &elem: elems) {
+    for (const auto& elem : elems) {
         insert(elem);
     }
 }
 
 template<class T>
-bool Set<T>::empty() const {
-    return size_ == 0;
-}
-
-template<class T>
-typename Set<T>::Node *Set<T>::lower_bound_(const T &elem) {
-    Node *node = root_;
+typename Set<T>::Node* Set<T>::lower_bound_(const T& elem) {
+    Node* node = root_;
     while (node->sons_size) {
         if (!(*(node->sons[0]->val) < elem)) {
             node = node->sons[0];
@@ -164,11 +143,11 @@ typename Set<T>::Node *Set<T>::lower_bound_(const T &elem) {
 }
 
 template<class T>
-typename Set<T>::iterator Set<T>::lower_bound(const T &elem) const {
+typename Set<T>::Iterator Set<T>::lower_bound(const T& elem) const {
     if (size_ == 0) {
         return end();
     }
-    const Node *node = root_;
+    const Node* node = root_;
     while (node->sons_size) {
         if (!(*(node->sons[0]->val) < elem)) {
             node = node->sons[0];
@@ -183,14 +162,13 @@ typename Set<T>::iterator Set<T>::lower_bound(const T &elem) const {
     if (*node->val < elem) {
         return end();
     }
-    return iterator(node, this);
+    return Iterator(node, this);
 }
 
 template<class T>
-void Set<T>::fix4sons_(Set::Node *node) {
-    if (node->sons_size != 4)
-        return;
-    Node *node2 = new Node();
+void Set<T>::fix4sons_(Set::Node* node) {
+    if (node->sons_size != 4) return;
+    Node* node2 = new Node();
     node2->sons[0] = node->sons[2];
     node2->sons[1] = node->sons[3];
     node2->sons_size = 2;
@@ -210,19 +188,19 @@ void Set<T>::fix4sons_(Set::Node *node) {
 }
 
 template<class T>
-void Set<T>::update_(Set::Node *node) {
+void Set<T>::update_(Set::Node* node) {
     if (node == nullptr) {
         return;
     }
     sort_sons(node);
-    for (int i = 0; i < node->sons_size; ++i) {
+    for (size_t i = 0; i < node->sons_size; ++i) {
         node->sons[i]->parent = node;
     }
     node->val = node->sons[node->sons_size - 1]->val;
 }
 
 template<class T>
-void Set<T>::fix1sons_(Set::Node *node) {
+void Set<T>::fix1sons_(Set::Node* node) {
     if (node == nullptr) {
         return;
     }
@@ -236,9 +214,13 @@ void Set<T>::fix1sons_(Set::Node *node) {
         delete node;
         return;
     }
-    Node *bro = (node == node->parent->sons[1] ? node->parent->sons[0] : node->parent->sons[1]);
+    Node* bro = (node == node->parent->sons[1] ? node->parent->sons[0]
+                                               : node->parent->sons[1]);
     bro->sons[bro->sons_size++] = node->sons[0];
-    int pos = std::find(node->parent->sons, node->parent->sons + node->parent->sons_size, node) - node->parent->sons;
+    size_t pos =
+        std::find(node->parent->sons.begin(),
+                  node->parent->sons.begin() + node->parent->sons_size, node) -
+        node->parent->sons.begin();
     while (pos != node->parent->sons_size - 1) {
         std::swap(node->parent->sons[pos], node->parent->sons[pos + 1]);
         pos++;
@@ -252,8 +234,8 @@ void Set<T>::fix1sons_(Set::Node *node) {
 }
 
 template<class T>
-void Set<T>::sort_sons(Set::Node *node) {
-    for (int i = node->sons_size - 2; i >= 0; --i) {
+void Set<T>::sort_sons(Set::Node* node) {
+    for (size_t i = node->sons_size - 2; i < MAX_SONS; --i) {
         if (*node->sons[i + 1]->val < *node->sons[i]->val) {
             std::swap(node->sons[i], node->sons[i + 1]);
         }
@@ -261,8 +243,8 @@ void Set<T>::sort_sons(Set::Node *node) {
 }
 
 template<class T>
-typename Set<T>::iterator Set<T>::find(const T &elem) const {
-    auto iter = lower_bound(elem);
+typename Set<T>::Iterator Set<T>::find(const T& elem) const {
+    Iterator iter = lower_bound(elem);
     if (iter == end()) {
         return end();
     }
@@ -273,35 +255,35 @@ typename Set<T>::iterator Set<T>::find(const T &elem) const {
 }
 
 template<class T>
-typename Set<T>::iterator Set<T>::begin() const {
+typename Set<T>::Iterator Set<T>::begin() const {
     if (size_ == 0) {
         return end();
     }
-    const Node *node = root_;
+    const Node* node = root_;
     while (node->sons_size) {
         node = node->sons[0];
     }
-    return iterator(node, this);
+    return Iterator(node, this);
 }
 
 template<class T>
-typename Set<T>::iterator Set<T>::end() const {
-    return iterator(&END_NODE_, this);
+typename Set<T>::Iterator Set<T>::end() const {
+    return Iterator(&END_NODE_, this);
 }
 
 template<class T>
-void Set<T>::insert(const T &elem) {
+void Set<T>::insert(const T& elem) {
     if (find(elem) != end()) {
         return;
     }
     ++version_;
     ++size_;
-    Node *node = new Node(elem);
+    Node* node = new Node(elem);
     if (root_ == nullptr) {
         root_ = node;
         return;
     }
-    Node *pos = lower_bound_(elem);
+    Node* pos = lower_bound_(elem);
     if (pos->parent == nullptr) {
         root_ = new Node();
         root_->sons[root_->sons_size++] = pos;
@@ -319,13 +301,11 @@ void Set<T>::insert(const T &elem) {
 }
 
 template<class T>
-void Set<T>::erase(const T &elem) {
-    if (size_ == 0)
-        return;
+void Set<T>::erase(const T& elem) {
+    if (size_ == 0) return;
 
-    Node *node = lower_bound_(elem);
-    if (*node->val < elem || elem < *node->val)
-        return;
+    Node* node = lower_bound_(elem);
+    if (*node->val < elem || elem < *node->val) return;
     ++version_;
     --size_;
     if (node->parent == nullptr) {
@@ -334,8 +314,10 @@ void Set<T>::erase(const T &elem) {
         root_ = nullptr;
         return;
     }
-    Node *parent = node->parent;
-    int pos = std::find(parent->sons, parent->sons + parent->sons_size, node) - parent->sons;
+    Node* parent = node->parent;
+    size_t pos = std::find(parent->sons.begin(),
+                           parent->sons.begin() + parent->sons_size, node) -
+                 parent->sons.begin();
     while (pos != parent->sons_size - 1) {
         std::swap(parent->sons[pos], parent->sons[pos + 1]);
         pos++;
@@ -349,16 +331,17 @@ void Set<T>::erase(const T &elem) {
 }
 
 template<class T>
-const typename Set<T>::Node *Set<T>::next_node_(const Node *cur_) const {
-    auto son = cur_;
-    auto par = cur_->parent;
+const typename Set<T>::Node* Set<T>::next_node_(const Node* cur_) const {
+    const Node* son = cur_;
+    const Node* par = cur_->parent;
     while (par != nullptr && son == par->sons[par->sons_size - 1]) {
         par = par->parent;
         son = son->parent;
     }
-    if (par == nullptr)
-        return &END_NODE_;
-    son = *(std::find(par->sons, par->sons + par->sons_size, son) + 1);
+    if (par == nullptr) return &END_NODE_;
+    son = *(
+        std::find(par->sons.begin(), par->sons.begin() + par->sons_size, son) +
+        1);
     while (son->sons_size) {
         son = son->sons[0];
     }
@@ -369,7 +352,7 @@ const typename Set<T>::Node *Set<T>::next_node_(const Node *cur_) const {
 }
 
 template<class T>
-const typename Set<T>::Node *Set<T>::prev_node_(const Node *cur_) const {
+const typename Set<T>::Node* Set<T>::prev_node_(const Node* cur_) const {
     if (cur_ == &END_NODE_) {
         cur_ = root_;
         while (cur_->sons_size) {
@@ -377,14 +360,13 @@ const typename Set<T>::Node *Set<T>::prev_node_(const Node *cur_) const {
         }
         return cur_;
     }
-    auto son = cur_;
-    auto par = cur_->parent;
+    Node* son = cur_;
+    Node* par = cur_->parent;
     while (par != nullptr && son == par->sons[0]) {
         par = par->parent;
         son = son->parent;
     }
-    if (par == nullptr)
-        return &END_NODE_;
+    if (par == nullptr) return &END_NODE_;
     son = *(std::find(par->sons, par->sons + par->sons_size, son) - 1);
     while (son->sons_size) {
         son = son->sons[son->sons_size - 1];
@@ -393,11 +375,11 @@ const typename Set<T>::Node *Set<T>::prev_node_(const Node *cur_) const {
 }
 
 template<class T>
-typename Set<T>::Node *Set<T>::copy_(const Node *root) {
+typename Set<T>::Node* Set<T>::copy_(const Node* root) {
     if (root == nullptr) {
         return nullptr;
     }
-    Node *new_root = new Node();
+    Node* new_root = new Node();
     if (!root->sons_size) {
         new_root->val = new T(*root->val);
     }
@@ -410,23 +392,23 @@ typename Set<T>::Node *Set<T>::copy_(const Node *root) {
 }
 
 template<class T>
-Set<T>::Set(const Set<T> &s) {
+Set<T>::Set(const Set<T>& s) {
     root_ = nullptr;
     size_ = 0;
-    for (const auto &item: s) {
+    for (const auto& item : s) {
         insert(item);
     }
 }
 
 template<class T>
-Set<T> &Set<T>::operator=(const Set<T> &s) {
+Set<T>& Set<T>::operator=(const Set<T>& s) {
     if (this == &s) {
         return *this;
     }
     destruct_(root_);
     root_ = nullptr;
     size_ = 0;
-    for (const auto &item: s) {
+    for (const auto& item : s) {
         insert(item);
     }
     version_++;
@@ -436,15 +418,14 @@ Set<T> &Set<T>::operator=(const Set<T> &s) {
 template<class T>
 Set<T>::~Set() {
     destruct_(root_);
-
 }
 
 template<class T>
-void Set<T>::destruct_(Set::Node *root) {
+void Set<T>::destruct_(Set::Node* root) {
     if (root == nullptr) {
         return;
     }
-    for (int i = 0; i < root->sons_size; ++i) {
+    for (size_t i = 0; i < root->sons_size; ++i) {
         destruct_(root->sons[i]);
     }
     if (root->sons_size == 0) {
@@ -454,7 +435,7 @@ void Set<T>::destruct_(Set::Node *root) {
 }
 
 template<class T>
-Set<T>::Set(Set<T> &&s) noexcept {
+Set<T>::Set(Set<T>&& s) noexcept {
     std::swap(s.root_, root_);
     std::swap(s.size_, size_);
     std::swap(s.version_, version_);
@@ -462,7 +443,7 @@ Set<T>::Set(Set<T> &&s) noexcept {
 }
 
 template<class T>
-Set<T> &Set<T>::operator=(Set<T> &&s) noexcept {
+Set<T>& Set<T>::operator=(Set<T>&& s) noexcept {
     if (this == &s) {
         return *this;
     }
@@ -474,66 +455,66 @@ Set<T> &Set<T>::operator=(Set<T> &&s) noexcept {
 }
 
 template<class T>
-Iterator<T>::Iterator(const Iterator::Node *node, const Set *s) : cur_(node), s_(s), version_(s->version_) {}
+Set<T>::Iterator::Iterator(const Set<T>::Node* node, const Set<T>* s)
+    : cur_(node), s_(s), version_(s->version_) {}
 
 template<class T>
-void Iterator<T>::check_version_() const {
+void Set<T>::Iterator::check_version_() const {
     if (version_ != s_->version_) {
         throw std::out_of_range("invalid iterator");
     }
 }
 
 template<class T>
-Iterator<T> &Iterator<T>::operator++() {
+typename Set<T>::Iterator& Set<T>::Iterator::operator++() {
     check_version_();
     cur_ = s_->next_node_(cur_);
     return *this;
 }
 
 template<class T>
-Iterator<T> &Iterator<T>::operator--() {
+typename Set<T>::Iterator& Set<T>::Iterator::operator--() {
     check_version_();
     cur_ = s_->prev_node_(cur_);
     return *this;
 }
 
 template<class T>
-bool Iterator<T>::operator!=(const Iterator &iter) const {
+bool Set<T>::Iterator::operator!=(const typename Set<T>::Iterator& iter) const {
     check_version_();
     return s_ != iter.s_ || cur_ != iter.cur_;
 }
 
 template<class T>
-const T &Iterator<T>::operator*() const {
+const T& Set<T>::Iterator::operator*() const {
     check_version_();
-    auto x = cur_->val;
-    return *x;
+    return *cur_->val;
 }
 
 template<class T>
-bool Iterator<T>::operator==(const Iterator &iter) const {
+bool Set<T>::Iterator::operator==(const Iterator& iter) const {
     check_version_();
     return !operator!=(iter);
 }
 
 template<class T>
-T *Iterator<T>::operator->() {
+T* Set<T>::Iterator::operator->() {
     check_version_();
     return cur_->val;
 }
 
 template<class T>
-Iterator<T> Iterator<T>::operator++(int) {
+typename Set<T>::Iterator Set<T>::Iterator::operator++(int) {
     check_version_();
-    Iterator<T> copy = *this;
+    Iterator copy = *this;
     this->operator++();
     return copy;
 }
 
 template<class T>
-Iterator<T> Iterator<T>::operator--(int) {
+typename Set<T>::Iterator Set<T>::Iterator::operator--(int) {
     check_version_();
-    Iterator<T> copy = *this;
+    Iterator copy = *this;
     this->operator--();
     return copy;
 }
