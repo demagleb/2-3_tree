@@ -5,9 +5,17 @@
 #include <stdexcept>
 #include <vector>
 
+/**
+   *  A sorted associative container made up of unique keys, which can be
+   *  retrieved in logarithmic time. It's an implementation of 2-3 tree
+   *
+   *  @tparam T  Type of key objects.
+   *
+ */
+
 template<class T>
 class Set {
-private:
+  private:
     static const size_t MAX_SONS = 4;
 
     struct Node {
@@ -21,16 +29,16 @@ private:
         size_t sons_size = 0;
     };
 
-public:
+  public:
     class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
-    private:
+      private:
         void check_version_() const;
 
         const Node* cur_ = nullptr;
         const Set<T>* s_ = nullptr;
         uint64_t version_ = 0;
 
-    public:
+      public:
         Iterator(const Node* node, const Set<T>* s);
 
         Iterator() = default;
@@ -52,11 +60,13 @@ public:
         const T& operator*() const;
     };
 
-public:
+    using iterator = Iterator;
+
+  public:
     Set() = default;
 
-    template<typename iterator>
-    Set(iterator first, iterator last);
+    template<typename InputIterator>
+    Set(InputIterator first, InputIterator last);
 
     Set(std::initializer_list<T> elems);
 
@@ -86,7 +96,7 @@ public:
 
     Iterator find(const T& elem) const;
 
-private:
+  private:
     void update_(Node* node);
 
     void fix4sons_(Node* node);
@@ -105,7 +115,7 @@ private:
 
     void destruct_(Node* root);
 
-private:
+  private:
     Node* root_ = nullptr;
     size_t size_ = 0;
     uint64_t version_ = 0;
@@ -113,9 +123,9 @@ private:
 };
 
 template<class T>
-template<class iterator>
-Set<T>::Set(iterator first, iterator last) {
-    for (Iterator i = first; i != last; ++i) {
+template<class InputIterator>
+Set<T>::Set(InputIterator first, InputIterator last) {
+    for (InputIterator i = first; i != last; ++i) {
         insert(*i);
     }
 }
@@ -360,14 +370,16 @@ const typename Set<T>::Node* Set<T>::prev_node_(const Node* cur_) const {
         }
         return cur_;
     }
-    Node* son = cur_;
-    Node* par = cur_->parent;
+    const Node* son = cur_;
+    const Node* par = cur_->parent;
     while (par != nullptr && son == par->sons[0]) {
         par = par->parent;
         son = son->parent;
     }
     if (par == nullptr) return &END_NODE_;
-    son = *(std::find(par->sons, par->sons + par->sons_size, son) - 1);
+    son = *(
+        std::find(par->sons.begin(), par->sons.begin() + par->sons_size, son) -
+        1);
     while (son->sons_size) {
         son = son->sons[son->sons_size - 1];
     }
