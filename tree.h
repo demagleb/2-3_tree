@@ -6,11 +6,11 @@
 #include <vector>
 
 /**
-   *  A sorted associative container made up of unique keys, which can be
-   *  retrieved in logarithmic time. It's an implementation of 2-3 tree
-   *
-   *  @tparam T  Type of key objects.
-   *
+ *  A sorted associative container made up of unique keys, which can be
+ *  retrieved in logarithmic time. It's an implementation of 2-3 tree
+ *
+ *  @tparam T  Type of key objects.
+ *
  */
 
 template<class T>
@@ -32,6 +32,7 @@ class Set {
   public:
     class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
       private:
+        // Check if Iterator is invalid O(log(n))
         void check_version_() const;
 
         const Node* cur_ = nullptr;
@@ -80,39 +81,60 @@ class Set {
 
     Set<T>& operator=(Set<T>&& s) noexcept;
 
+    // Return number of elements O(1)
     inline size_t size() const { return size_; }
 
+    // Checks whether the container is empty O(1)
     inline bool empty() const { return size_ == 0; }
 
+    // Inserts element into the set, if the set doesn't already contain an
+    // element with an equivalent key. O(log(n))
     void insert(const T& elem);
 
+    // Removes elem from the set, if the set contain it O(log(n))
     void erase(const T& elem);
 
+    // Returns an iterator to the beginning O(1)
     Iterator begin() const;
 
+    // Returns an iterator to the end O(1)
     Iterator end() const;
 
+    // Returns an iterator to the first element not less than the given key
+    // O(log(n))
     Iterator lower_bound(const T& elem) const;
 
+    // Returns an iterator to the element equal to the given key O(log(n))
     Iterator find(const T& elem) const;
 
   private:
+    // Make node's data valid
     void update_(Node* node);
 
+    // Processes the case if node has 4 sons O(log(n))
     void fix4sons_(Node* node);
 
+    // Processes the case if node has 1 son O(log(n))
     void fix1sons_(Node* node);
 
+    // Fix sons order in node O(1)
     void sort_sons(Node* node);
 
+    // Returns pointer to the first node with element not less than the given key
+    // O(log(n))
     Node* lower_bound_(const T& elem);
 
+
+    // Returns pointer to the next node O(log(n))
     const Node* next_node_(const Node* cur_) const;
 
+    // Returns pointer to the previous node O(log(n))
     const Node* prev_node_(const Node* cur_) const;
 
+    // Copy tree
     Node* copy_(const Node* root);
 
+    // Deletes all nodes of tree
     void destruct_(Node* root);
 
   private:
