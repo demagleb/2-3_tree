@@ -16,7 +16,7 @@
 template<class T>
 class Set {
   private:
-    static const size_t MAX_SONS = 4;
+    static constexpr size_t MAX_SONS = 4;
 
     struct Node {
         Node() = default;
@@ -199,7 +199,9 @@ typename Set<T>::Iterator Set<T>::lower_bound(const T& elem) const {
 
 template<class T>
 void Set<T>::fix4sons_(Set::Node* node) {
-    if (node->sons_size != 4) return;
+    if (node->sons_size != 4) {
+        return;
+    }
     Node* node2 = new Node();
     node2->sons[0] = node->sons[2];
     node2->sons[1] = node->sons[3];
@@ -334,10 +336,13 @@ void Set<T>::insert(const T& elem) {
 
 template<class T>
 void Set<T>::erase(const T& elem) {
-    if (size_ == 0) return;
-
+    if (size_ == 0) {
+        return;
+    }
     Node* node = lower_bound_(elem);
-    if (*node->val < elem || elem < *node->val) return;
+    if (*node->val < elem || elem < *node->val) {
+        return;
+    }
     ++version_;
     --size_;
     if (node->parent == nullptr) {
@@ -370,10 +375,11 @@ const typename Set<T>::Node* Set<T>::next_node_(const Node* cur_) const {
         par = par->parent;
         son = son->parent;
     }
-    if (par == nullptr) return &END_NODE_;
-    son = *(
-        std::find(par->sons.begin(), par->sons.begin() + par->sons_size, son) +
-        1);
+    if (par == nullptr) {
+        return &END_NODE_;
+    }
+    son = *(std::find(par->sons.begin(),
+                      par->sons.begin() + par->sons_size, son) + 1);
     while (son->sons_size) {
         son = son->sons[0];
     }
@@ -398,10 +404,11 @@ const typename Set<T>::Node* Set<T>::prev_node_(const Node* cur_) const {
         par = par->parent;
         son = son->parent;
     }
-    if (par == nullptr) return &END_NODE_;
-    son = *(
-        std::find(par->sons.begin(), par->sons.begin() + par->sons_size, son) -
-        1);
+    if (par == nullptr) {
+        return &END_NODE_;
+    }
+    son = *(std::find(par->sons.begin(),
+                      par->sons.begin() + par->sons_size, son) - 1);
     while (son->sons_size) {
         son = son->sons[son->sons_size - 1];
     }
