@@ -32,7 +32,7 @@ class Set {
   public:
     class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
       private:
-        // Check if Iterator is invalid O(log(n))
+        // Check if Iterator is invalid O(1)
         void check_version_() const;
 
         const Node* cur_ = nullptr;
