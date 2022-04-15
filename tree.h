@@ -7,7 +7,7 @@
 
 /**
  *  A sorted associative container made up of unique keys, which can be
- *  retrieved in logarithmic time. It's an implementation of 2-3 tree
+ *  retrieved in logarithmic time. It's an implementation of 2-3 tree.
  *
  *  @tparam T  Type of key objects.
  *
@@ -32,7 +32,7 @@ class Set {
   public:
     class Iterator : public std::iterator<std::bidirectional_iterator_tag, T> {
       private:
-        // Check if Iterator is invalid O(1)
+        // Check if Iterator is invalid O(1).
         void check_version_() const;
 
         const Node* cur_ = nullptr;
@@ -43,13 +43,16 @@ class Set {
         Iterator(const Node* node, const Set<T>* s);
 
         Iterator() = default;
-
+        // Go to next element.
         Iterator& operator++();
 
+        // Go to next element.
         Iterator operator++(int);
 
+        // Go to previous element.
         Iterator& operator--();
 
+        // Go to previous element.
         Iterator operator--(int);
 
         T* operator->();
@@ -66,9 +69,11 @@ class Set {
   public:
     Set() = default;
 
+    // Create set with elements from [first, last) range.
     template<typename InputIterator>
     Set(InputIterator first, InputIterator last);
 
+    // Create set with elements from elems.
     Set(std::initializer_list<T> elems);
 
     Set(const Set<T>& s);
@@ -81,60 +86,60 @@ class Set {
 
     Set<T>& operator=(Set<T>&& s) noexcept;
 
-    // Return number of elements O(1)
+    // Return number of elements. Time: O(1).
     inline size_t size() const { return size_; }
 
-    // Checks whether the container is empty O(1)
+    // Checks whether the container is empty. Time: O(1).
     inline bool empty() const { return size_ == 0; }
 
     // Inserts element into the set, if the set doesn't already contain an
-    // element with an equivalent key. O(log(n))
+    // element with an equivalent key. Time: O(log(n)).
     void insert(const T& elem);
 
-    // Removes elem from the set, if the set contain it O(log(n))
+    // Removes elem from the set, if the set contain it. Time: O(log(n)).
     void erase(const T& elem);
 
-    // Returns an iterator to the beginning O(1)
+    // Returns an iterator to the beginning. Time: O(1)
     Iterator begin() const;
 
-    // Returns an iterator to the end O(1)
+    // Returns an iterator to the end. Time: O(1).
     Iterator end() const;
 
-    // Returns an iterator to the first element not less than the given key
-    // O(log(n))
+    // Returns an iterator to the first element not less than the given key.
+    // Time: O(log(n))
     Iterator lower_bound(const T& elem) const;
 
-    // Returns an iterator to the element equal to the given key O(log(n))
+    // Returns an iterator to the element equal to the given key. Time: O(log(n))
     Iterator find(const T& elem) const;
 
   private:
-    // Make node's data valid
+    // Make node's data valid. Time: O(1).
     void update_(Node* node);
 
-    // Processes the case if node has 4 sons O(log(n))
+    // Processes the case if node has 4 sons. Time: O(log(n)).
     void fix4sons_(Node* node);
 
-    // Processes the case if node has 1 son O(log(n))
+    // Processes the case if node has 1 son. Time: O(log(n)).
     void fix1sons_(Node* node);
 
-    // Fix sons order in node O(1)
+    // Fix sons order in node. Time: O(1).
     void sort_sons(Node* node);
 
     // Returns pointer to the first node with element not less than the given key
-    // O(log(n))
+    // Time: O(log(n)).
     Node* lower_bound_(const T& elem);
 
 
-    // Returns pointer to the next node O(log(n))
+    // Returns pointer to the next node. Time: O(log(n))
     const Node* next_node_(const Node* cur_) const;
 
-    // Returns pointer to the previous node O(log(n))
+    // Returns pointer to the previous node. Time: O(log(n))
     const Node* prev_node_(const Node* cur_) const;
 
-    // Copy tree
+    // Copy tree. Time: O(n).
     Node* copy_(const Node* root);
 
-    // Deletes all nodes of tree
+    // Deletes all nodes of tree. Time: O(n).
     void destruct_(Node* root);
 
   private:
@@ -269,11 +274,10 @@ void Set<T>::fix1sons_(Set::Node* node) {
 
 template<class T>
 void Set<T>::sort_sons(Set::Node* node) {
-    for (size_t i = node->sons_size - 2; i < MAX_SONS; --i) {
-        if (*node->sons[i + 1]->val < *node->sons[i]->val) {
-            std::swap(node->sons[i], node->sons[i + 1]);
-        }
-    }
+    auto cmp = [](const Set::Node* a, const Set::Node* b) {
+        return *a->val < *b->val;
+    };
+    std::sort(node->sons.begin(), node->sons.begin() + node->sons_size, cmp);
 }
 
 template<class T>
